@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用jquery ajax方法操作数据</title>
+    <script type="text/javascript" src="./JS/jquery-3.6.4.min.js"></script>
+        <style>
+            table,
+            td,
+            th {
+                border: 1px solid black;
+                border-collapse: collapse;
+            }
+
+            table {
+                width: 500px;
+                text-align: center;
+            }
+
+            tr {
+                height: 35px;
+            }
+        </style>
+</head>
+<body>
+    <button id="getBtn">获取所有水果信息</button>
+    <div id="showData"></div>
+    <!-- 案例：在页面的输入框中输入新的水果名称和价格，通过post添加到db.json中。 -->
+    <hr>
+    <br>
+    <div>
+        水果:<input id="fruitName" type="text" name="fruitName"><br>
+        价格:<input id="fruitPrice" type="text" name="fruitPrice"><br>
+        <button id="postBtn">添加水果</button>
+    </div>
+   <br>
+
+    <!-- 案例：输入水果对应id，修改其价格  -->
+    <p>更新水果价格</p>
+    水果id:<input id="putId" type="text" name="fruitId"><br>
+    价格:<input id="putPrice" type="text" name="fruitPrice"><br>
+    <button id="putBtn">put更新</button>
+
+    <!-- 案例：输入水果对应名字，修改其价格 -->
+    <p>通过水果名更新水果价格</p>
+    水果id:<input id="editName" type="text" name="fruitName"><br>
+    价格:<input id="editPrice" type="text" name="fruitPrice"><br>
+    <button id="editBtn">edit</button>
+
+    <!-- DELETE 方法，常用来删除已有资源
+        案例：根据id删除水果数据 -->
+        <p>删除水果</p>
+        水果id：<input id="delId" type="text" name="delName"><br>
+            <button id="delOne">根据id删除</button>
+            <button id="delAll">删除所有</button>
+
+
+   <!-- js文件 -->
+    <script type="text/javascript">
+        // 获取数据
+        // 获取db.json中的所有水果信息，以表格的方式展现出来
+        $("#getBtn").click(function(){
+            $.ajax({
+                type:'get',
+                url:'http://localhost:3000/fruits',
+                success:function(data){
+                    //data对象数组
+                    var h =""
+                    h += "<table border='1'>"
+                    h +="<thead><th>ID</th><th>name</th><th>price</th></thead>"
+                    h +="<tbody>"
+                        for(var i =0; i<data.length; i++){
+                            var o = data[i]
+                            h +="<tr>"
+                            h += "<td>" + o.id + "</td><td>" + o.name + "</td><td>" + o.price + "</td>"
+                            h +="</tr>"
+                        }
+                        h += "<tbody>"
+                        h += "</table>"
+                        $("#showData").empty().append(h)
+                },
+                error:function(){
+                    alert("get:error")
+                }
+            })
+        })
+        
+
+        // 添加数据
+        //在页面的输入框中输入新的水果名称和价格，通过post添加到db.json中
+        // 注意：此时如果再次点击 添加水果 按钮，重复添加猕猴桃   2.68 数据，会发现在get中存在多条 id 不一样但 name & price 相同的重复数据。
+        $("#postBtn").click(function(){
+            $.ajax({
+                type:'post',
+                url:'http://localhost:3000/fruits',
+                data:{
+                    name:$("#fruitName").val(),
+                    price:$("#fruitPrice").val()
+                },
+                success:function(data){
+                    console.log("post success")
+                },
+                error:function(){
+                    alert("post error")
+                }
+            })
+        })
+
+        // 更新数据
+        // PUT 方法，常用来更新已有资源，若资源不存在，它也会进行创建。
+        // 案例：输入水果对应id，修改其价格。
+        /**在案例中，我们输入id 为 1 ，更改价格为100，本意是要更新 糖心富士苹果 的价格为100，
+         * 但PUT方法执行后，get到的数据name 字段 的 糖心富士苹果 变成 undefined 了。
+	        这是因为，PUT方法会更新整个资源对象，前端没有给出的字段，会自动清空。所以，要么我们在ajax的data中给出完整的对象信息，
+            要么采用PATCH方法。
+        PATCH是一个新方法，可以当作是PUT方法的补充，主要用来做局部更新。 */
+        $("#putBtn").click(function(){
+            $.ajax({
+                type:'patch',
+                url:'http://localhost:3000/fruits/'+ $("#putId").val(),
+                data:{
+                    price:$("#putPrice").val()
+                },
+                success:function(data){
+                    console.log("put success");
+                },
+                error:function(){
+                    alert("put error")
+                }
+            })
+        })
+    
+        //通过水果名更新水果价格
+        $("#editBtn").click(function(){
+            getFun($("#editName").val(),patchFun)
+        })
+        function getFun(name,f){
+            $.ajax({
+                trpe:'get',
+                url:'http://localhost:3000/fruits'+'?name=' + name,
+                success:function(data){
+                    //data数组
+                    console.log(data[0]);
+                    if(typeof f == "function") f.call(this,data[0].id)
+                },
+                error:function(){
+                    alert("error")
+                }
+            })
+        }
+        function patchFun(id){
+            $.ajax({
+                type:'patch',
+                url:'http://localhost:3000/fruits/'+id,
+                data:{
+                    price:$("#editPrice").val()
+                },
+                success:function(data){
+                    console.log("success",data);
+                },
+                error:function(){
+                    alert("error")
+                }
+            })
+        }
+    
+        //根据id删除水果数据
+        $("#delOne").click(function(){
+            $.ajax({
+                type:'delete',
+                url:'http://localhost:3000/fruits/'+ $("#delId").val(),
+                success:function(data){
+                    console.log("del success");
+                },
+                error:function(){
+                    alert("del error")
+                }
+            })
+        })
+        /**因为必须指定删除的对象id。所以只能通过循环删除。
+         * 这就需要实现通过GET方法来获取当前最大id（注意是最大id，而不是数据个数）
+         * 来作为循环的边界 */
+        $("#delAll").click(function(){
+            // 此处就没有动态去获取db.json中fruits的最大id，直接带入14
+            for (var i = 0; i <= 14; i++) {
+                delFun(i)
+            }
+        })
+        function delFun(id) {
+            $.ajax({
+                type: 'delete',
+                url: 'http://localhost:3000/fruits/' + id,
+                data: '',
+                success: function (data) {
+                    console.log("del success", data)
+                },
+                error: function () {
+                    console.log("del error")
+                }
+            })
+        }
+    </script>
+</body>
+</html>
